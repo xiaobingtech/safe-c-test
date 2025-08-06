@@ -34,13 +34,22 @@ export const EXAM_CONFIG: ExamConfig = {
 export function getRandomQuestions(): Question[] {
   const { singleChoice, multipleChoice, judge } = questionsData.questions
   
-  // 随机选择题目
-  const selectedSingle = getRandomItems(singleChoice, EXAM_CONFIG.singleChoiceCount)
-  const selectedMultiple = getRandomItems(multipleChoice, EXAM_CONFIG.multipleChoiceCount)
-  const selectedJudge = getRandomItems(judge, EXAM_CONFIG.judgeCount)
+  // 随机选择题目并进行类型转换
+  const selectedSingle = getRandomItems(singleChoice, EXAM_CONFIG.singleChoiceCount).map(q => ({
+    ...q,
+    type: 'single' as const
+  }))
+  const selectedMultiple = getRandomItems(multipleChoice, EXAM_CONFIG.multipleChoiceCount).map(q => ({
+    ...q,
+    type: 'multiple' as const
+  }))
+  const selectedJudge = getRandomItems(judge, EXAM_CONFIG.judgeCount).map(q => ({
+    ...q,
+    type: 'judge' as const
+  }))
   
   // 按题型顺序排列：先单选，再多选，最后判断题
-  const allQuestions = [
+  const allQuestions: Question[] = [
     ...selectedSingle,
     ...selectedMultiple,
     ...selectedJudge
