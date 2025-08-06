@@ -97,12 +97,29 @@ export default function ExamPage() {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
+  const formatCorrectAnswer = (question: Question) => {
+    if (question.type === 'judge') {
+      return question.correctAnswer ? '正确' : '错误'
+    }
+    
+    if (question.type === 'single') {
+      return question.correctAnswer as string
+    }
+    
+    if (question.type === 'multiple') {
+      const answers = question.correctAnswer as string[]
+      return answers.join(', ')
+    }
+    
+    return String(question.correctAnswer)
+  }
+
   const handleAnswerChange = (questionId: number, answer: string | string[]) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer
     }))
-    setAnswerResult(null)
+    setAnswerResult(null) // 选择新答案时清除之前的反馈
   }
 
   const handleConfirmAnswer = async () => {
@@ -145,14 +162,14 @@ export default function ExamPage() {
   const handleNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1)
-      setAnswerResult(null)
+      setAnswerResult(null) // 清除答案反馈
     }
   }
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1)
-      setAnswerResult(null)
+      setAnswerResult(null) // 清除答案反馈
     }
   }
 
@@ -334,22 +351,88 @@ export default function ExamPage() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-10 gap-1">
-                {questions.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentQuestionIndex(index)}
-                    className={`w-8 h-8 text-xs rounded ${
-                      index === currentQuestionIndex
-                        ? 'bg-blue-600 text-white'
-                        : answeredQuestions.has(questions[index].id)
-                        ? 'bg-green-200 text-green-800'
-                        : 'bg-gray-200 text-gray-600'
-                    } hover:opacity-80 transition-colors`}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
+              {/* 按题型分组显示 */}
+              <div className="space-y-4">
+                {/* 单选题 */}
+                <div>
+                  <div className="text-sm font-medium text-blue-600 mb-2">单选题 (1-30)</div>
+                  <div className="grid grid-cols-10 gap-2">
+                    {questions.slice(0, 30).map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setCurrentQuestionIndex(index)
+                          setAnswerResult(null) // 切换题目时清除答案反馈
+                        }}
+                        className={`w-8 h-8 text-xs rounded ${
+                          index === currentQuestionIndex
+                            ? 'bg-blue-600 text-white'
+                            : answeredQuestions.has(questions[index].id)
+                            ? 'bg-green-200 text-green-800'
+                            : 'bg-gray-200 text-gray-600'
+                        } hover:opacity-80 transition-colors`}
+                      >
+                        {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 多选题 */}
+                <div>
+                  <div className="text-sm font-medium text-green-600 mb-2">多选题 (31-50)</div>
+                  <div className="grid grid-cols-10 gap-2">
+                    {questions.slice(30, 50).map((_, index) => {
+                      const actualIndex = index + 30;
+                      return (
+                        <button
+                          key={actualIndex}
+                          onClick={() => {
+                            setCurrentQuestionIndex(actualIndex)
+                            setAnswerResult(null) // 切换题目时清除答案反馈
+                          }}
+                          className={`w-8 h-8 text-xs rounded ${
+                            actualIndex === currentQuestionIndex
+                              ? 'bg-green-600 text-white'
+                              : answeredQuestions.has(questions[actualIndex]?.id)
+                              ? 'bg-green-200 text-green-800'
+                              : 'bg-gray-200 text-gray-600'
+                          } hover:opacity-80 transition-colors`}
+                        >
+                          {actualIndex + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 判断题 */}
+                <div>
+                  <div className="text-sm font-medium text-purple-600 mb-2">判断题 (51-80)</div>
+                  <div className="grid grid-cols-10 gap-2">
+                    {questions.slice(50, 80).map((_, index) => {
+                      const actualIndex = index + 50;
+                      return (
+                        <button
+                          key={actualIndex}
+                          onClick={() => {
+                            setCurrentQuestionIndex(actualIndex)
+                            setAnswerResult(null) // 切换题目时清除答案反馈
+                          }}
+                          className={`w-8 h-8 text-xs rounded ${
+                            actualIndex === currentQuestionIndex
+                              ? 'bg-purple-600 text-white'
+                              : answeredQuestions.has(questions[actualIndex]?.id)
+                              ? 'bg-green-200 text-green-800'
+                              : 'bg-gray-200 text-gray-600'
+                          } hover:opacity-80 transition-colors`}
+                        >
+                          {actualIndex + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               
               <div className="mt-4 text-sm">
@@ -372,9 +455,9 @@ export default function ExamPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold">
                     第 {currentQuestionIndex + 1} 题
-                    {currentQuestion.type === 'single' && ' (单选题)'}
-                    {currentQuestion.type === 'multiple' && ' (多选题)'}
-                    {currentQuestion.type === 'judge' && ' (判断题)'}
+                    {currentQuestion.type === 'single' && ` (单选题 ${currentQuestionIndex + 1}/30)`}
+                    {currentQuestion.type === 'multiple' && ` (多选题 ${currentQuestionIndex - 29}/20)`}
+                    {currentQuestion.type === 'judge' && ` (判断题 ${currentQuestionIndex - 49}/30)`}
                   </h2>
                   <span className={`px-2 py-1 text-xs font-semibold rounded ${
                     currentQuestion.type === 'single' ? 'bg-blue-100 text-blue-800' :
@@ -398,11 +481,19 @@ export default function ExamPage() {
                 <div className={`p-4 rounded-md mb-6 ${
                   answerResult.isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
                 }`}>
-                  <div className={`font-semibold ${
+                  <div className={`font-semibold mb-2 ${
                     answerResult.isCorrect ? 'text-green-800' : 'text-red-800'
                   }`}>
                     {answerResult.message} (得分: {answerResult.score}分)
                   </div>
+                  {!answerResult.isCorrect && (
+                    <div className="text-sm">
+                      <span className="font-medium text-gray-700">正确答案: </span>
+                      <span className="text-green-600 font-medium">
+                        {formatCorrectAnswer(currentQuestion)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 

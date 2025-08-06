@@ -26,9 +26,9 @@ export interface ExamConfig {
 export const EXAM_CONFIG: ExamConfig = {
   singleChoiceCount: 30,
   multipleChoiceCount: 20,
-  judgeCount: 50, // 修正为50道判断题，总共100题
+  judgeCount: 30, // 30道判断题，总共80题
   timeLimit: 5400, // 90分钟
-  totalQuestions: 100
+  totalQuestions: 80
 }
 
 export function getRandomQuestions(): Question[] {
@@ -39,14 +39,15 @@ export function getRandomQuestions(): Question[] {
   const selectedMultiple = getRandomItems(multipleChoice, EXAM_CONFIG.multipleChoiceCount)
   const selectedJudge = getRandomItems(judge, EXAM_CONFIG.judgeCount)
   
-  // 合并并打乱顺序
+  // 按题型顺序排列：先单选，再多选，最后判断题
   const allQuestions = [
     ...selectedSingle,
     ...selectedMultiple,
     ...selectedJudge
   ]
   
-  return shuffleArray(allQuestions)
+  // 不再打乱顺序，保持题型分组
+  return allQuestions
 }
 
 function getRandomItems<T>(array: T[], count: number): T[] {
