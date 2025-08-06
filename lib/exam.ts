@@ -1,4 +1,3 @@
-import { db } from './db'
 import questionsData from '../src/output/questions.json'
 
 export interface Question {
@@ -117,6 +116,8 @@ export function calculateScore(
 }
 
 export async function createExamSession(userId: string): Promise<string> {
+  const { db } = await import('./db')
+  
   const session = await db.examSession.create({
     data: {
       userId,
@@ -129,6 +130,8 @@ export async function createExamSession(userId: string): Promise<string> {
 }
 
 export async function getExamSession(sessionId: string) {
+  const { db } = await import('./db')
+  
   return await db.examSession.findUnique({
     where: { id: sessionId },
     include: {
@@ -145,6 +148,7 @@ export async function saveAnswer(
   userAnswer: string | string[],
   correctAnswer: string | string[] | boolean
 ) {
+  const { db } = await import('./db')
   const { isCorrect, score } = calculateScore(questionType, userAnswer, correctAnswer)
   
   await db.examAnswer.upsert({
@@ -175,6 +179,8 @@ export async function saveAnswer(
 }
 
 export async function completeExam(sessionId: string) {
+  const { db } = await import('./db')
+  
   const session = await db.examSession.findUnique({
     where: { id: sessionId },
     include: { answers: true }

@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../../../../../../lib/auth'
-import { db } from '../../../../../../lib/db'
 import questionsData from '../../../../../output/questions.json'
+
+export const runtime = 'nodejs'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { sessionId: string } }
 ) {
   try {
+    // 动态导入数据库，避免构建时初始化
+    const { db } = await import('../../../../../../lib/db')
+    
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -54,7 +58,7 @@ export async function GET(
         questionId: answer.questionId,
         question: question?.question || '题目未找到',
         questionType: answer.questionType,
-        options: question?.options,
+        options: question && 'options' in question ? question.options : undefined,
         userAnswer: answer.userAnswer ? JSON.parse(answer.userAnswer) : null,
         correctAnswer: answer.correctAnswer ? JSON.parse(answer.correctAnswer) : null,
         isCorrect: answer.isCorrect,
