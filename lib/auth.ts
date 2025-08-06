@@ -1,6 +1,7 @@
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
+import { getDb } from './db-safe'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -11,14 +12,15 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        // 动态导入数据库，避免构建时初始化
-        const { db } = await import('./db')
-        
         if (!credentials?.username || !credentials?.password) {
           return null
         }
 
         try {
+          // 使用安全的数据库连接
+          const db = getDb()
+          await db.$connect()
+          
           const user = await db.user.findUnique({
             where: {
               username: credentials.username
