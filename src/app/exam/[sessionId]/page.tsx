@@ -37,6 +37,7 @@ export default function ExamPage() {
   const [loading, setLoading] = useState(true)
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null)
   const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set())
+  const [confirmedQuestions, setConfirmedQuestions] = useState<Set<number>>(new Set())
   const timerRef = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
@@ -150,6 +151,7 @@ export default function ExamPage() {
         const result = await response.json()
         setAnswerResult(result)
         setAnsweredQuestions(prev => new Set(prev).add(currentQuestion.id))
+        setConfirmedQuestions(prev => new Set(prev).add(currentQuestion.id))
       } else {
         alert('保存答案失败')
       }
@@ -207,28 +209,31 @@ export default function ExamPage() {
 
   const renderQuestionOptions = (question: Question) => {
     const userAnswer = answers[question.id]
+    const isConfirmed = confirmedQuestions.has(question.id)
 
     if (question.type === 'judge') {
       return (
         <div className="space-y-3">
-          <label className="flex items-center space-x-3 cursor-pointer">
+          <label className={`flex items-center space-x-3 ${isConfirmed ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
             <input
               type="radio"
               name={`question-${question.id}`}
               value="true"
               checked={userAnswer === true}
-              onChange={() => handleAnswerChange(question.id, true)}
+              onChange={() => !isConfirmed && handleAnswerChange(question.id, true)}
+              disabled={isConfirmed}
               className="w-4 h-4 text-blue-600"
             />
             <span className="text-lg">正确</span>
           </label>
-          <label className="flex items-center space-x-3 cursor-pointer">
+          <label className={`flex items-center space-x-3 ${isConfirmed ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
             <input
               type="radio"
               name={`question-${question.id}`}
               value="false"
               checked={userAnswer === false}
-              onChange={() => handleAnswerChange(question.id, false)}
+              onChange={() => !isConfirmed && handleAnswerChange(question.id, false)}
+              disabled={isConfirmed}
               className="w-4 h-4 text-blue-600"
             />
             <span className="text-lg">错误</span>
@@ -241,13 +246,14 @@ export default function ExamPage() {
       return (
         <div className="space-y-3">
           {Object.entries(question.options!).map(([key, value]) => (
-            <label key={key} className="flex items-start space-x-3 cursor-pointer">
+            <label key={key} className={`flex items-start space-x-3 ${isConfirmed ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
               <input
                 type="radio"
                 name={`question-${question.id}`}
                 value={key}
                 checked={userAnswer === key}
-                onChange={() => handleAnswerChange(question.id, key)}
+                onChange={() => !isConfirmed && handleAnswerChange(question.id, key)}
+                disabled={isConfirmed}
                 className="w-4 h-4 text-blue-600 mt-1"
               />
               <span className="text-lg">
@@ -265,17 +271,20 @@ export default function ExamPage() {
       return (
         <div className="space-y-3">
           {Object.entries(question.options!).map(([key, value]) => (
-            <label key={key} className="flex items-start space-x-3 cursor-pointer">
+            <label key={key} className={`flex items-start space-x-3 ${isConfirmed ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
               <input
                 type="checkbox"
                 value={key}
                 checked={selectedAnswers.includes(key)}
                 onChange={(e) => {
-                  const newAnswers = e.target.checked
-                    ? [...selectedAnswers, key]
-                    : selectedAnswers.filter(a => a !== key)
-                  handleAnswerChange(question.id, newAnswers)
+                  if (!isConfirmed) {
+                    const newAnswers = e.target.checked
+                      ? [...selectedAnswers, key]
+                      : selectedAnswers.filter(a => a !== key)
+                    handleAnswerChange(question.id, newAnswers)
+                  }
                 }}
+                disabled={isConfirmed}
                 className="w-4 h-4 text-blue-600 mt-1"
               />
               <span className="text-lg">
@@ -356,7 +365,7 @@ export default function ExamPage() {
                 {/* 单选题 */}
                 <div>
                   <div className="text-sm font-medium text-blue-600 mb-2">单选题 (1-30)</div>
-                  <div className="grid grid-cols-10 gap-2">
+                  <div className="grid grid-cols-10 gap-3">
                     {questions.slice(0, 30).map((_, index) => (
                       <button
                         key={index}
@@ -367,8 +376,10 @@ export default function ExamPage() {
                         className={`w-8 h-8 text-xs rounded ${
                           index === currentQuestionIndex
                             ? 'bg-blue-600 text-white'
+                            : confirmedQuestions.has(questions[index].id)
+                            ? 'bg-green-500 text-white'
                             : answeredQuestions.has(questions[index].id)
-                            ? 'bg-green-200 text-green-800'
+                            ? 'bg-yellow-200 text-yellow-800'
                             : 'bg-gray-200 text-gray-600'
                         } hover:opacity-80 transition-colors`}
                       >
@@ -381,7 +392,7 @@ export default function ExamPage() {
                 {/* 多选题 */}
                 <div>
                   <div className="text-sm font-medium text-green-600 mb-2">多选题 (31-50)</div>
-                  <div className="grid grid-cols-10 gap-2">
+                  <div className="grid grid-cols-10 gap-3">
                     {questions.slice(30, 50).map((_, index) => {
                       const actualIndex = index + 30;
                       return (
@@ -394,8 +405,10 @@ export default function ExamPage() {
                           className={`w-8 h-8 text-xs rounded ${
                             actualIndex === currentQuestionIndex
                               ? 'bg-green-600 text-white'
+                              : confirmedQuestions.has(questions[actualIndex]?.id)
+                              ? 'bg-green-500 text-white'
                               : answeredQuestions.has(questions[actualIndex]?.id)
-                              ? 'bg-green-200 text-green-800'
+                              ? 'bg-yellow-200 text-yellow-800'
                               : 'bg-gray-200 text-gray-600'
                           } hover:opacity-80 transition-colors`}
                         >
@@ -409,7 +422,7 @@ export default function ExamPage() {
                 {/* 判断题 */}
                 <div>
                   <div className="text-sm font-medium text-purple-600 mb-2">判断题 (51-80)</div>
-                  <div className="grid grid-cols-10 gap-2">
+                  <div className="grid grid-cols-10 gap-3">
                     {questions.slice(50, 80).map((_, index) => {
                       const actualIndex = index + 50;
                       return (
@@ -422,8 +435,10 @@ export default function ExamPage() {
                           className={`w-8 h-8 text-xs rounded ${
                             actualIndex === currentQuestionIndex
                               ? 'bg-purple-600 text-white'
+                              : confirmedQuestions.has(questions[actualIndex]?.id)
+                              ? 'bg-green-500 text-white'
                               : answeredQuestions.has(questions[actualIndex]?.id)
-                              ? 'bg-green-200 text-green-800'
+                              ? 'bg-yellow-200 text-yellow-800'
                               : 'bg-gray-200 text-gray-600'
                           } hover:opacity-80 transition-colors`}
                         >
@@ -437,8 +452,12 @@ export default function ExamPage() {
               
               <div className="mt-4 text-sm">
                 <div className="flex items-center mb-2">
-                  <div className="w-4 h-4 bg-green-200 rounded mr-2"></div>
-                  <span>已答题: {answeredQuestions.size}</span>
+                  <div className="w-4 h-4 bg-green-500 rounded mr-2"></div>
+                  <span>已确认: {confirmedQuestions.size}</span>
+                </div>
+                <div className="flex items-center mb-2">
+                  <div className="w-4 h-4 bg-yellow-200 rounded mr-2"></div>
+                  <span>已答题: {answeredQuestions.size - confirmedQuestions.size}</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-4 h-4 bg-gray-200 rounded mr-2"></div>
@@ -509,10 +528,10 @@ export default function ExamPage() {
                   
                   <button
                     onClick={handleConfirmAnswer}
-                    disabled={answers[currentQuestion.id] === undefined}
+                    disabled={answers[currentQuestion.id] === undefined || confirmedQuestions.has(currentQuestion.id)}
                     className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    确认答案
+                    {confirmedQuestions.has(currentQuestion.id) ? '已确认' : '确认答案'}
                   </button>
                   
                   <button
