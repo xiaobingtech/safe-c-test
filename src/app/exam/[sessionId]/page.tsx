@@ -342,9 +342,9 @@ export default function ExamPage() {
       </header>
 
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* 左侧进度栏 */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <div className="bg-white shadow rounded-lg p-4">
               <h3 className="text-lg font-semibold mb-4">答题进度</h3>
               <div className="mb-4">
@@ -365,7 +365,7 @@ export default function ExamPage() {
                 {/* 单选题 */}
                 <div>
                   <div className="text-sm font-medium text-blue-600 mb-2">单选题 (1-30)</div>
-                  <div className="grid grid-cols-10 gap-3">
+                  <div className="grid grid-cols-10 gap-2">
                     {questions.slice(0, 30).map((_, index) => (
                       <button
                         key={index}
@@ -373,7 +373,7 @@ export default function ExamPage() {
                           setCurrentQuestionIndex(index)
                           setAnswerResult(null) // 切换题目时清除答案反馈
                         }}
-                        className={`w-8 h-8 text-xs rounded ${
+                        className={`w-10 h-10 text-sm font-medium rounded ${
                           index === currentQuestionIndex
                             ? 'bg-blue-600 text-white'
                             : confirmedQuestions.has(questions[index].id)
@@ -392,7 +392,7 @@ export default function ExamPage() {
                 {/* 多选题 */}
                 <div>
                   <div className="text-sm font-medium text-green-600 mb-2">多选题 (31-50)</div>
-                  <div className="grid grid-cols-10 gap-3">
+                  <div className="grid grid-cols-10 gap-2">
                     {questions.slice(30, 50).map((_, index) => {
                       const actualIndex = index + 30;
                       return (
@@ -402,7 +402,7 @@ export default function ExamPage() {
                             setCurrentQuestionIndex(actualIndex)
                             setAnswerResult(null) // 切换题目时清除答案反馈
                           }}
-                          className={`w-8 h-8 text-xs rounded ${
+                          className={`w-10 h-10 text-sm font-medium rounded ${
                             actualIndex === currentQuestionIndex
                               ? 'bg-green-600 text-white'
                               : confirmedQuestions.has(questions[actualIndex]?.id)
@@ -422,7 +422,7 @@ export default function ExamPage() {
                 {/* 判断题 */}
                 <div>
                   <div className="text-sm font-medium text-purple-600 mb-2">判断题 (51-80)</div>
-                  <div className="grid grid-cols-10 gap-3">
+                  <div className="grid grid-cols-10 gap-2">
                     {questions.slice(50, 80).map((_, index) => {
                       const actualIndex = index + 50;
                       return (
@@ -432,7 +432,7 @@ export default function ExamPage() {
                             setCurrentQuestionIndex(actualIndex)
                             setAnswerResult(null) // 切换题目时清除答案反馈
                           }}
-                          className={`w-8 h-8 text-xs rounded ${
+                          className={`w-10 h-10 text-sm font-medium rounded ${
                             actualIndex === currentQuestionIndex
                               ? 'bg-purple-600 text-white'
                               : confirmedQuestions.has(questions[actualIndex]?.id)
