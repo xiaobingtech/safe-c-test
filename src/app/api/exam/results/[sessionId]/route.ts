@@ -4,6 +4,8 @@ import { authOptions } from '../../../../../../lib/auth'
 import { db } from '../../../../../../lib/db'
 import questionsData from '../../../../../output/questions.json'
 
+export const runtime = 'nodejs'
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { sessionId: string } }
