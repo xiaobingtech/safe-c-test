@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { db } from '../../../../../lib/db'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
+    // 动态导入数据库，避免构建时初始化
+    const { db } = await import('../../../../../lib/db')
+    
     const { username, password } = await request.json()
 
     if (!username || !password) {
