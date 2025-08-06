@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联的考试记录
+  examSessions ExamSession[]
+  
+  @@map("users")
+}
+
+model ExamSession {
+  id          String   @id @default(cuid())
+  userId      String
+  startTime   DateTime @default(now())
+  endTime     DateTime?
+  isCompleted Boolean  @default(false)
+  score       Float?
+  totalQuestions Int   @default(100)
+  timeLimit   Int      @default(5400) // 90 minutes in seconds
+  
+  // 关联用户
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 考试中的题目答案
+  answers     ExamAnswer[]
+  
+  @@map("exam_sessions")
+}
+
+model ExamAnswer {
+  id           String      @id @default(cuid())
+  sessionId    String
+  questionId   Int
+  questionType String      // 'single', 'multiple', 'judge'
+  userAnswer   String?     // JSON string for answers
+  correctAnswer String     // JSON string for correct answers
+  isCorrect    Boolean     @default(false)
+  score        Float       @default(0)
+  answeredAt   DateTime?
+  
+  // 关联考试会话
+  session      ExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@unique([sessionId, questionId])
+  @@map("exam_answers")
+}
