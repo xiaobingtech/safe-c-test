@@ -115,14 +115,15 @@ export function calculateScore(
   }
 }
 
-export async function createExamSession(userId: string): Promise<string> {
+export async function createExamSession(userId: string, questions: Question[]): Promise<string> {
   const { db } = await import('./db')
   
   const session = await db.examSession.create({
     data: {
       userId,
       totalQuestions: EXAM_CONFIG.totalQuestions,
-      timeLimit: EXAM_CONFIG.timeLimit
+      timeLimit: EXAM_CONFIG.timeLimit,
+      questions: JSON.stringify(questions) // 保存题目列表
     }
   })
   
@@ -139,6 +140,20 @@ export async function getExamSession(sessionId: string) {
       user: true
     }
   })
+}
+
+export async function getExamQuestions(sessionId: string): Promise<Question[] | null> {
+  const session = await getExamSession(sessionId)
+  if (!session || !session.questions) {
+    return null
+  }
+  
+  try {
+    return JSON.parse(session.questions) as Question[]
+  } catch (error) {
+    console.error('解析题目数据失败:', error)
+    return null
+  }
 }
 
 export async function saveAnswer(
