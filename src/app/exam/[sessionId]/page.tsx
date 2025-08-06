@@ -32,7 +32,7 @@ export default function ExamPage() {
   
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [answers, setAnswers] = useState<Record<number, string | string[]>>({})
+  const [answers, setAnswers] = useState<Record<number, string | string[] | boolean>>({})
   const [timeLeft, setTimeLeft] = useState(5400) // 90分钟
   const [loading, setLoading] = useState(true)
   const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null)
@@ -114,7 +114,7 @@ export default function ExamPage() {
     return String(question.correctAnswer)
   }
 
-  const handleAnswerChange = (questionId: number, answer: string | string[]) => {
+  const handleAnswerChange = (questionId: number, answer: string | string[] | boolean) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer
@@ -509,7 +509,7 @@ export default function ExamPage() {
                   
                   <button
                     onClick={handleConfirmAnswer}
-                    disabled={!answers[currentQuestion.id] && answers[currentQuestion.id] !== false}
+                    disabled={answers[currentQuestion.id] === undefined}
                     className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     确认答案

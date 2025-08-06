@@ -54,7 +54,7 @@ export async function GET(
         questionId: answer.questionId,
         question: question?.question || '题目未找到',
         questionType: answer.questionType,
-        options: question?.options,
+        options: question && 'options' in question ? question.options : undefined,
         userAnswer: answer.userAnswer ? JSON.parse(answer.userAnswer) : null,
         correctAnswer: answer.correctAnswer ? JSON.parse(answer.correctAnswer) : null,
         isCorrect: answer.isCorrect,
