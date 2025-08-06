@@ -1,21 +1,16 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { 
-  SingleChoiceQuestion, 
-  MultipleChoiceQuestion, 
-  JudgeQuestion, 
-  ParseResult 
-} from './types';
+const fs = require('fs');
+const path = require('path');
 
-export class QuestionParser {
+// 题目解析器类
+class QuestionParser {
   
   /**
    * 解析单选题文件
    */
-  public parseSingleChoice(filePath: string): SingleChoiceQuestion[] {
+  parseSingleChoice(filePath) {
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split('\n').map(line => line.trim()).filter(line => line);
-    const questions: SingleChoiceQuestion[] = [];
+    const questions = [];
     
     let i = 0;
     while (i < lines.length) {
@@ -99,10 +94,10 @@ export class QuestionParser {
   /**
    * 解析多选题文件
    */
-  public parseMultipleChoice(filePath: string): MultipleChoiceQuestion[] {
+  parseMultipleChoice(filePath) {
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split('\n').map(line => line.trim()).filter(line => line);
-    const questions: MultipleChoiceQuestion[] = [];
+    const questions = [];
     
     let i = 0;
     while (i < lines.length) {
@@ -124,7 +119,7 @@ export class QuestionParser {
           }
           
           // 解析选项
-          const options: any = {
+          const options = {
             A: '',
             B: '',
             C: '',
@@ -197,10 +192,10 @@ export class QuestionParser {
   /**
    * 解析判断题文件
    */
-  public parseJudgeQuestions(filePath: string): JudgeQuestion[] {
+  parseJudgeQuestions(filePath) {
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split('\n').map(line => line.trim()).filter(line => line);
-    const questions: JudgeQuestion[] = [];
+    const questions = [];
     
     let i = 0;
     while (i < lines.length) {
@@ -254,14 +249,14 @@ export class QuestionParser {
   /**
    * 判断是否为题目行
    */
-  private isQuestionLine(line: string): boolean {
+  isQuestionLine(line) {
     return /^\d+\./.test(line);
   }
   
   /**
    * 解析所有题目文件
    */
-  public parseAllQuestions(resDir: string): ParseResult {
+  parseAllQuestions(resDir) {
     const singleChoicePath = path.join(resDir, '安全C证单选题.txt');
     const multipleChoicePath = path.join(resDir, '安全C证多选题.txt');
     const judgePath = path.join(resDir, '安全C证判断题.txt');
@@ -291,7 +286,7 @@ export class QuestionParser {
   /**
    * 保存解析结果为JSON文件
    */
-  public saveToJson(result: ParseResult, outputPath: string): void {
+  saveToJson(result, outputPath) {
     const jsonData = {
       metadata: {
         totalQuestions: result.total,
@@ -311,3 +306,68 @@ export class QuestionParser {
     console.log(`JSON文件已保存到: ${outputPath}`);
   }
 }
+
+// 主函数
+function main() {
+  try {
+    console.log('=== 安全C证题目解析器 ===');
+    console.log('');
+    
+    const parser = new QuestionParser();
+    
+    // 资源文件目录
+    const resDir = path.join(__dirname, '../res');
+    
+    // 解析所有题目
+    const result = parser.parseAllQuestions(resDir);
+    
+    console.log('');
+    console.log('=== 解析结果 ===');
+    console.log(`单选题: ${result.singleChoice.length} 道`);
+    console.log(`多选题: ${result.multipleChoice.length} 道`);
+    console.log(`判断题: ${result.judge.length} 道`);
+    console.log(`总计: ${result.total} 道题目`);
+    
+    // 保存为JSON文件
+    const outputPath = path.join(__dirname, '../output/questions.json');
+    
+    // 确保输出目录存在
+    const outputDir = path.dirname(outputPath);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+    
+    parser.saveToJson(result, outputPath);
+    
+    console.log('');
+    console.log('=== 完成 ===');
+    console.log(`所有题目已解析完成并保存为JSON格式`);
+    
+    // 输出一些示例数据
+    console.log('');
+    console.log('=== 示例数据 ===');
+    if (result.singleChoice.length > 0) {
+      console.log('单选题示例:');
+      console.log(JSON.stringify(result.singleChoice[0], null, 2));
+      console.log('');
+    }
+    
+    if (result.multipleChoice.length > 0) {
+      console.log('多选题示例:');
+      console.log(JSON.stringify(result.multipleChoice[0], null, 2));
+      console.log('');
+    }
+    
+    if (result.judge.length > 0) {
+      console.log('判断题示例:');
+      console.log(JSON.stringify(result.judge[0], null, 2));
+    }
+    
+  } catch (error) {
+    console.error('解析过程中出现错误:', error);
+    process.exit(1);
+  }
+}
+
+// 运行主函数
+main();
