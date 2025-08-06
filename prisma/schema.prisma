@@ -29,6 +29,7 @@ model ExamSession {
   score       Float?
   totalQuestions Int   @default(100)
   timeLimit   Int      @default(5400) // 90 minutes in seconds
+  questions   String?  // 存储题目列表的JSON字符串
   
   // 关联用户
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)

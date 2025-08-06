@@ -59,7 +59,13 @@ export default function ExamPage() {
   const fetchExamData = async () => {
     try {
       const response = await fetch('/api/exam/start', {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sessionId: sessionId // 传递sessionId以获取已保存的题目
+        })
       })
       
       if (response.ok) {
@@ -67,8 +73,14 @@ export default function ExamPage() {
         setQuestions(data.questions)
         setTimeLeft(data.config.timeLimit)
       } else {
-        alert('获取考试数据失败')
-        router.push('/')
+        const errorData = await response.json()
+        if (errorData.timeExpired) {
+          alert('考试时间已结束，正在跳转到结果页面')
+          router.push(`/exam/results/${sessionId}`)
+        } else {
+          alert('获取考试数据失败')
+          router.push('/')
+        }
       }
     } catch (error) {
       console.error('获取考试数据失败:', error)
@@ -90,6 +102,31 @@ export default function ExamPage() {
       })
     }, 1000)
   }
+
+  // 页面获得焦点时同步时间
+  useEffect(() => {
+    if (loading) return // 避免在初始加载时重复调用
+
+    const handleFocus = () => {
+      // 重新获取最新的考试数据和剩余时间
+      fetchExamData()
+    }
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // 页面重新可见时同步时间
+        handleFocus()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [loading, sessionId])
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600)
