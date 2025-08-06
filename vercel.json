@@ -1,0 +1,13 @@
+{
+  "buildCommand": "prisma generate && npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install && prisma generate",
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "PRISMA_CLI_BINARY_TARGETS": "native,rhel-openssl-1.0.x"
+  }
+}
