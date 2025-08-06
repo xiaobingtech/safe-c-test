@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { getDb } from '../../../../../lib/db-safe'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
-    // 动态导入数据库，避免构建时初始化
-    const { db } = await import('../../../../../lib/db')
+    // 使用安全的数据库连接
+    const db = getDb()
+    
+    // 测试数据库连接
+    await db.$connect()
     
     const { username, password } = await request.json()
 
@@ -55,8 +59,16 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error('注册错误:', error)
+    
+    // 更详细的错误信息用于调试
+    const errorMessage = error instanceof Error ? error.message : '未知错误'
+    console.error('详细错误信息:', errorMessage)
+    
     return NextResponse.json(
-      { error: '服务器错误' },
+      { 
+        error: '服务器错误',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     )
   }
