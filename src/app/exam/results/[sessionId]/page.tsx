@@ -50,7 +50,7 @@ export default function ExamResultsPage() {
   
   const [results, setResults] = useState<ExamResults | null>(null)
   const [loading, setLoading] = useState(true)
-  const [showWrongOnly, setShowWrongOnly] = useState(false)
+  const [showWrongOnly, setShowWrongOnly] = useState(true)
 
   useEffect(() => {
     if (!session) {
