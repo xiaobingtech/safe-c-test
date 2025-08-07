@@ -18,10 +18,12 @@ export async function POST(request: NextRequest) {
 
     let body
     let existingSessionId
+    let examMode = 'random' // 默认随机模式
     
     try {
       body = await request.json()
       existingSessionId = body.sessionId
+      examMode = body.mode || 'random'
     } catch {
       // 如果没有请求体，就创建新的考试会话
       existingSessionId = null
@@ -59,12 +61,12 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // 会话不存在或没有题目，创建新的
-        questions = getRandomQuestions()
+        questions = await getRandomQuestions(examMode as any, session.user.id)
         examSessionId = await createExamSession(session.user.id, questions)
       }
     } else {
       // 创建新的考试会话和题目
-      questions = getRandomQuestions()
+      questions = await getRandomQuestions(examMode as any, session.user.id)
       examSessionId = await createExamSession(session.user.id, questions)
     }
     

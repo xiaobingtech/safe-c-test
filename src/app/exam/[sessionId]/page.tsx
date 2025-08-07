@@ -436,11 +436,11 @@ export default function ExamPage() {
               
               {/* 按题型分组显示 */}
               <div className="space-y-4">
-                {/* 单选题 */}
+                {/* 判断题 */}
                 <div>
-                  <div className="text-sm font-medium text-blue-600 mb-2">单选题 (1-30)</div>
+                  <div className="text-sm font-medium text-purple-600 mb-2">判断题 (1-40)</div>
                   <div className="grid grid-cols-10 gap-2">
-                    {questions.slice(0, 30).map((_, index) => (
+                    {questions.slice(0, 40).map((_, index) => (
                       <button
                         key={index}
                         onClick={() => {
@@ -449,7 +449,7 @@ export default function ExamPage() {
                         }}
                         className={`w-10 h-10 text-sm font-medium rounded ${
                           index === currentQuestionIndex
-                            ? 'bg-blue-600 text-white'
+                            ? 'bg-purple-600 text-white'
                             : confirmedQuestions.has(questions[index].id)
                             ? 'bg-green-500 text-white'
                             : (answers[questions[index].id] !== undefined && answers[questions[index].id] !== null)
@@ -463,12 +463,12 @@ export default function ExamPage() {
                   </div>
                 </div>
 
-                {/* 多选题 */}
+                {/* 单选题 */}
                 <div>
-                  <div className="text-sm font-medium text-green-600 mb-2">多选题 (31-50)</div>
+                  <div className="text-sm font-medium text-blue-600 mb-2">单选题 (41-80)</div>
                   <div className="grid grid-cols-10 gap-2">
-                    {questions.slice(30, 50).map((_, index) => {
-                      const actualIndex = index + 30;
+                    {questions.slice(40, 80).map((_, index) => {
+                      const actualIndex = index + 40;
                       return (
                         <button
                           key={actualIndex}
@@ -478,7 +478,7 @@ export default function ExamPage() {
                           }}
                           className={`w-10 h-10 text-sm font-medium rounded ${
                             actualIndex === currentQuestionIndex
-                              ? 'bg-green-600 text-white'
+                              ? 'bg-blue-600 text-white'
                               : confirmedQuestions.has(questions[actualIndex]?.id)
                               ? 'bg-green-500 text-white'
                               : (answers[questions[actualIndex]?.id] !== undefined && answers[questions[actualIndex]?.id] !== null)
@@ -493,12 +493,12 @@ export default function ExamPage() {
                   </div>
                 </div>
 
-                {/* 判断题 */}
+                {/* 多选题 */}
                 <div>
-                  <div className="text-sm font-medium text-purple-600 mb-2">判断题 (51-80)</div>
+                  <div className="text-sm font-medium text-green-600 mb-2">多选题 (81-100)</div>
                   <div className="grid grid-cols-10 gap-2">
-                    {questions.slice(50, 80).map((_, index) => {
-                      const actualIndex = index + 50;
+                    {questions.slice(80, 100).map((_, index) => {
+                      const actualIndex = index + 80;
                       return (
                         <button
                           key={actualIndex}
@@ -508,7 +508,7 @@ export default function ExamPage() {
                           }}
                           className={`w-10 h-10 text-sm font-medium rounded ${
                             actualIndex === currentQuestionIndex
-                              ? 'bg-purple-600 text-white'
+                              ? 'bg-green-600 text-white'
                               : confirmedQuestions.has(questions[actualIndex]?.id)
                               ? 'bg-green-500 text-white'
                               : (answers[questions[actualIndex]?.id] !== undefined && answers[questions[actualIndex]?.id] !== null)
@@ -548,18 +548,16 @@ export default function ExamPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold">
                     第 {currentQuestionIndex + 1} 题
-                    {currentQuestion.type === 'single' && ` (单选题 ${currentQuestionIndex + 1}/30)`}
-                    {currentQuestion.type === 'multiple' && ` (多选题 ${currentQuestionIndex - 29}/20)`}
-                    {currentQuestion.type === 'judge' && ` (判断题 ${currentQuestionIndex - 49}/30)`}
+                    {currentQuestion.type === 'judge' && currentQuestionIndex < 40 && ` (判断题 ${currentQuestionIndex + 1}/40)`}
+                    {currentQuestion.type === 'single' && currentQuestionIndex >= 40 && currentQuestionIndex < 80 && ` (单选题 ${currentQuestionIndex - 39}/40)`}
+                    {currentQuestion.type === 'multiple' && currentQuestionIndex >= 80 && ` (多选题 ${currentQuestionIndex - 79}/20)`}
                   </h2>
                   <span className={`px-2 py-1 text-xs font-semibold rounded ${
                     currentQuestion.type === 'single' ? 'bg-blue-100 text-blue-800' :
                     currentQuestion.type === 'multiple' ? 'bg-green-100 text-green-800' :
                     'bg-purple-100 text-purple-800'
                   }`}>
-                    {currentQuestion.type === 'single' && '1分'}
-                    {currentQuestion.type === 'multiple' && '2分'}
-                    {currentQuestion.type === 'judge' && '1分'}
+                    1分
                   </span>
                 </div>
                 

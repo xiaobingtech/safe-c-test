@@ -19,7 +19,6 @@ export default function HomePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [examHistory, setExamHistory] = useState<ExamHistory[]>([])
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -38,27 +37,6 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('获取考试历史失败:', error)
-    }
-  }
-
-  const startNewExam = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/exam/start', {
-        method: 'POST'
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        router.push(`/exam/${data.sessionId}`)
-      } else {
-        alert('开始考试失败，请重试')
-      }
-    } catch (error) {
-      console.error('开始考试失败:', error)
-      alert('开始考试失败，请重试')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -118,7 +96,7 @@ export default function HomePage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">80</div>
+                  <div className="text-2xl font-bold text-blue-600">100</div>
                   <div className="text-sm text-gray-600">题目总数</div>
                 </div>
                 <div className="text-center">
@@ -132,27 +110,26 @@ export default function HomePage() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-sm">
+                <div className="bg-purple-50 p-3 rounded">
+                  <div className="font-semibold text-purple-800">判断题 (40题)</div>
+                  <div className="text-purple-600">每题1分，共40分</div>
+                </div>
                 <div className="bg-blue-50 p-3 rounded">
-                  <div className="font-semibold text-blue-800">单选题 (30题)</div>
-                  <div className="text-blue-600">每题1分，共30分</div>
+                  <div className="font-semibold text-blue-800">单选题 (40题)</div>
+                  <div className="text-blue-600">每题1分，共40分</div>
                 </div>
                 <div className="bg-green-50 p-3 rounded">
                   <div className="font-semibold text-green-800">多选题 (20题)</div>
-                  <div className="text-green-600">每题2分，共40分<br/>少选扣0.5分/个</div>
-                </div>
-                <div className="bg-purple-50 p-3 rounded">
-                  <div className="font-semibold text-purple-800">判断题 (30题)</div>
-                  <div className="text-purple-600">每题1分，共30分</div>
+                  <div className="text-green-600">每题1分，共20分</div>
                 </div>
               </div>
 
-              <button
-                onClick={startNewExam}
-                disabled={loading}
-                className="w-full bg-blue-600 text-white text-lg font-semibold py-3 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              <Link
+                href="/exam/mode"
+                className="block w-full bg-blue-600 text-white text-lg font-semibold py-3 px-4 rounded-md hover:bg-blue-700 transition-colors text-center"
               >
-                {loading ? '正在准备考试...' : '开始新考试'}
-              </button>
+                开始新考试
+              </Link>
             </div>
           </div>
 

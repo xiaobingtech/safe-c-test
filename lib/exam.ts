@@ -22,15 +22,41 @@ export interface ExamConfig {
   totalQuestions: number
 }
 
-export const EXAM_CONFIG: ExamConfig = {
-  singleChoiceCount: 30,
-  multipleChoiceCount: 20,
-  judgeCount: 30, // 30道判断题，总共80题
-  timeLimit: 5400, // 90分钟
-  totalQuestions: 80
+export type ExamMode = 'random' | 'unanswered_first' | 'wrong_first'
+
+export interface ExamModeConfig {
+  mode: ExamMode
+  label: string
+  description: string
 }
 
-export function getRandomQuestions(): Question[] {
+export const EXAM_CONFIG: ExamConfig = {
+  singleChoiceCount: 40,
+  multipleChoiceCount: 20,
+  judgeCount: 40, // 40道判断题，总共100题
+  timeLimit: 5400, // 90分钟
+  totalQuestions: 100
+}
+
+export const EXAM_MODES: ExamModeConfig[] = [
+  {
+    mode: 'random',
+    label: '随机模式',
+    description: '题目完全随机排列'
+  },
+  {
+    mode: 'unanswered_first',
+    label: '未答题优先',
+    description: '优先显示未答的题目'
+  },
+  {
+    mode: 'wrong_first',
+    label: '错题优先',
+    description: '优先显示之前答错的题目'
+  }
+]
+
+export async function getRandomQuestions(mode: ExamMode = 'random', userId?: string): Promise<Question[]> {
   const { singleChoice, multipleChoice, judge } = questionsData.questions
   
   // 随机选择题目并进行类型转换
@@ -47,15 +73,45 @@ export function getRandomQuestions(): Question[] {
     type: 'judge' as const
   }))
   
-  // 按题型顺序排列：先单选，再多选，最后判断题
+  // 按题型顺序排列：先判断题，再单选，最后多选
   const allQuestions: Question[] = [
+    ...selectedJudge,
     ...selectedSingle,
-    ...selectedMultiple,
-    ...selectedJudge
+    ...selectedMultiple
   ]
   
-  // 不再打乱顺序，保持题型分组
-  return allQuestions
+  // 根据模式排序题目
+  return await sortQuestionsByMode(allQuestions, mode, userId)
+}
+
+async function sortQuestionsByMode(questions: Question[], mode: ExamMode, userId?: string): Promise<Question[]> {
+  switch (mode) {
+    case 'random':
+      return shuffleArray(questions)
+    
+    case 'unanswered_first':
+      // 如果有用户ID，获取用户的答题历史
+      if (userId) {
+        const answeredQuestionIds = await getUserAnsweredQuestions(userId)
+        const unanswered = questions.filter(q => !answeredQuestionIds.has(q.id))
+        const answered = questions.filter(q => answeredQuestionIds.has(q.id))
+        return [...shuffleArray(unanswered), ...shuffleArray(answered)]
+      }
+      return shuffleArray(questions)
+    
+    case 'wrong_first':
+      // 如果有用户ID，获取用户的错题历史
+      if (userId) {
+        const wrongQuestionIds = await getUserWrongQuestions(userId)
+        const wrong = questions.filter(q => wrongQuestionIds.has(q.id))
+        const others = questions.filter(q => !wrongQuestionIds.has(q.id))
+        return [...shuffleArray(wrong), ...shuffleArray(others)]
+      }
+      return shuffleArray(questions)
+    
+    default:
+      return shuffleArray(questions)
+  }
 }
 
 function getRandomItems<T>(array: T[], count: number): T[] {
@@ -70,6 +126,54 @@ function shuffleArray<T>(array: T[]): T[] {
     [result[i], result[j]] = [result[j], result[i]]
   }
   return result
+}
+
+async function getUserAnsweredQuestions(userId: string): Promise<Set<number>> {
+  try {
+    const { db } = await import('./db')
+    const sessions = await db.examSession.findMany({
+      where: { userId },
+      include: { answers: true }
+    })
+    
+    const answeredQuestionIds = new Set<number>()
+    sessions.forEach(session => {
+      session.answers.forEach(answer => {
+        answeredQuestionIds.add(answer.questionId)
+      })
+    })
+    
+    return answeredQuestionIds
+  } catch (error) {
+    console.error('获取用户答题历史失败:', error)
+    return new Set()
+  }
+}
+
+async function getUserWrongQuestions(userId: string): Promise<Set<number>> {
+  try {
+    const { db } = await import('./db')
+    const sessions = await db.examSession.findMany({
+      where: { userId },
+      include: { 
+        answers: {
+          where: { isCorrect: false }
+        }
+      }
+    })
+    
+    const wrongQuestionIds = new Set<number>()
+    sessions.forEach(session => {
+      session.answers.forEach(answer => {
+        wrongQuestionIds.add(answer.questionId)
+      })
+    })
+    
+    return wrongQuestionIds
+  } catch (error) {
+    console.error('获取用户错题历史失败:', error)
+    return new Set()
+  }
 }
 
 export function calculateScore(
@@ -90,25 +194,14 @@ export function calculateScore(
       const userAnswers = Array.isArray(userAnswer) ? userAnswer : []
       const correctAnswers = Array.isArray(correctAnswer) ? correctAnswer : []
       
-      // 检查是否有错选
-      const hasWrongSelection = userAnswers.some(ans => !correctAnswers.includes(ans))
-      if (hasWrongSelection) {
-        return { isCorrect: false, score: 0 }
+      // 多选题必须完全正确才得分（1分）
+      const isMultipleCorrect = userAnswers.length === correctAnswers.length &&
+        userAnswers.every(ans => correctAnswers.includes(ans))
+      
+      return {
+        isCorrect: isMultipleCorrect,
+        score: isMultipleCorrect ? 1 : 0
       }
-      
-      // 计算少选扣分
-      const correctCount = correctAnswers.length
-      const userCount = userAnswers.length
-      
-      if (userCount === correctCount) {
-        return { isCorrect: true, score: 2 }
-      } else if (userCount < correctCount) {
-        const missedCount = correctCount - userCount
-        const score = Math.max(0, 2 - (missedCount * 0.5))
-        return { isCorrect: false, score }
-      }
-      
-      return { isCorrect: false, score: 0 }
     
     default:
       return { isCorrect: false, score: 0 }
