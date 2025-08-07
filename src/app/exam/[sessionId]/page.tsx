@@ -158,6 +158,9 @@ export default function ExamPage() {
       [questionId]: answer
     }))
     setAnswerResult(null) // 选择新答案时清除之前的反馈
+    
+    // 选择答案时立即标记为已答题
+    setAnsweredQuestions(prev => new Set(prev).add(questionId))
   }
 
   const handleConfirmAnswer = async () => {
@@ -217,13 +220,47 @@ export default function ExamPage() {
       clearInterval(timerRef.current)
     }
 
-    const unansweredCount = questions.length - answeredQuestions.size
+    // 计算真正未选择答案的题目数量
+    const unansweredCount = questions.filter(q => 
+      answers[q.id] === undefined || answers[q.id] === null
+    ).length
+    
     if (unansweredCount > 0) {
       const confirm = window.confirm(`还有${unansweredCount}道题未答，确定要交卷吗？`)
       if (!confirm) return
     }
 
     try {
+      // 首先保存所有未确认的答案
+      const unconfirmedAnswers = questions.filter(q => 
+        answers[q.id] !== undefined && 
+        answers[q.id] !== null && 
+        !confirmedQuestions.has(q.id)
+      )
+
+      // 批量保存未确认的答案
+      for (const question of unconfirmedAnswers) {
+        try {
+          await fetch('/api/exam/answer', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              sessionId,
+              questionId: question.id,
+              questionType: question.type,
+              userAnswer: answers[question.id],
+              correctAnswer: question.correctAnswer
+            })
+          })
+        } catch (saveError) {
+          console.error('保存答案失败:', saveError)
+          // 继续保存其他答案，不中断流程
+        }
+      }
+
+      // 然后完成考试
       const response = await fetch('/api/exam/complete', {
         method: 'POST',
         headers: {
@@ -415,7 +452,7 @@ export default function ExamPage() {
                             ? 'bg-blue-600 text-white'
                             : confirmedQuestions.has(questions[index].id)
                             ? 'bg-green-500 text-white'
-                            : answeredQuestions.has(questions[index].id)
+                            : (answers[questions[index].id] !== undefined && answers[questions[index].id] !== null)
                             ? 'bg-yellow-200 text-yellow-800'
                             : 'bg-gray-200 text-gray-600'
                         } hover:opacity-80 transition-colors`}
@@ -444,7 +481,7 @@ export default function ExamPage() {
                               ? 'bg-green-600 text-white'
                               : confirmedQuestions.has(questions[actualIndex]?.id)
                               ? 'bg-green-500 text-white'
-                              : answeredQuestions.has(questions[actualIndex]?.id)
+                              : (answers[questions[actualIndex]?.id] !== undefined && answers[questions[actualIndex]?.id] !== null)
                               ? 'bg-yellow-200 text-yellow-800'
                               : 'bg-gray-200 text-gray-600'
                           } hover:opacity-80 transition-colors`}
@@ -474,7 +511,7 @@ export default function ExamPage() {
                               ? 'bg-purple-600 text-white'
                               : confirmedQuestions.has(questions[actualIndex]?.id)
                               ? 'bg-green-500 text-white'
-                              : answeredQuestions.has(questions[actualIndex]?.id)
+                              : (answers[questions[actualIndex]?.id] !== undefined && answers[questions[actualIndex]?.id] !== null)
                               ? 'bg-yellow-200 text-yellow-800'
                               : 'bg-gray-200 text-gray-600'
                           } hover:opacity-80 transition-colors`}
@@ -494,11 +531,11 @@ export default function ExamPage() {
                 </div>
                 <div className="flex items-center mb-2">
                   <div className="w-4 h-4 bg-yellow-200 rounded mr-2"></div>
-                  <span>已答题: {answeredQuestions.size - confirmedQuestions.size}</span>
+                  <span>已选择: {Object.keys(answers).filter(id => answers[parseInt(id)] !== undefined && answers[parseInt(id)] !== null).length - confirmedQuestions.size}</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-4 h-4 bg-gray-200 rounded mr-2"></div>
-                  <span>未答题: {questions.length - answeredQuestions.size}</span>
+                  <span>未答题: {questions.filter(q => answers[q.id] === undefined || answers[q.id] === null).length}</span>
                 </div>
               </div>
             </div>
