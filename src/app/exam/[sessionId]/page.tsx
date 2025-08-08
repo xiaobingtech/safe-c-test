@@ -39,6 +39,9 @@ export default function ExamPage() {
   const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set())
   const [confirmedQuestions, setConfirmedQuestions] = useState<Set<number>>(new Set())
   const timerRef = useRef<NodeJS.Timeout>()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitProgress, setSubmitProgress] = useState(0)
+  const [submitStatusText, setSubmitStatusText] = useState('正在提交试卷...')
 
   useEffect(() => {
     if (!session) {
@@ -216,6 +219,10 @@ export default function ExamPage() {
   }
 
   const handleSubmitExam = async () => {
+    if (isSubmitting) return
+    setIsSubmitting(true)
+    setSubmitProgress(0)
+    setSubmitStatusText('正在保存答案...')
     if (timerRef.current) {
       clearInterval(timerRef.current)
     }
@@ -238,6 +245,9 @@ export default function ExamPage() {
         !confirmedQuestions.has(q.id)
       )
 
+      // 进度分段：保存未确认答案(0-60)，提交阅卷(60-100)
+      const totalSteps = Math.max(1, unconfirmedAnswers.length)
+      let step = 0
       // 批量保存未确认的答案
       for (const question of unconfirmedAnswers) {
         try {
@@ -254,6 +264,10 @@ export default function ExamPage() {
               correctAnswer: question.correctAnswer
             })
           })
+          step += 1
+          const pct = Math.round((step / totalSteps) * 60)
+          setSubmitProgress(pct)
+          setSubmitStatusText(`正在保存答案... (${step}/${totalSteps})`)
         } catch (saveError) {
           console.error('保存答案失败:', saveError)
           // 继续保存其他答案，不中断流程
@@ -261,6 +275,8 @@ export default function ExamPage() {
       }
 
       // 然后完成考试
+      setSubmitStatusText('正在提交并阅卷...')
+      setSubmitProgress(prev => (prev < 70 ? 70 : prev))
       const response = await fetch('/api/exam/complete', {
         method: 'POST',
         headers: {
@@ -270,6 +286,11 @@ export default function ExamPage() {
       })
 
       if (response.ok) {
+        // 模拟阅卷进度到100%
+        for (let p = Math.max(70, submitProgress); p <= 100; p += 5) {
+          setSubmitProgress(p)
+          await new Promise(r => setTimeout(r, 50))
+        }
         const result = await response.json()
         router.push(`/exam/results/${sessionId}`)
       } else {
@@ -278,6 +299,9 @@ export default function ExamPage() {
     } catch (error) {
       console.error('交卷失败:', error)
       alert('交卷失败')
+    } finally {
+      // 防止在页面停留时按钮一直禁用；正常情况下会跳结果页
+      setIsSubmitting(false)
     }
   }
 
@@ -406,9 +430,10 @@ export default function ExamPage() {
               </div>
               <button
                 onClick={handleSubmitExam}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+                disabled={isSubmitting}
+                className={`px-4 py-2 rounded-md transition-colors ${isSubmitting ? 'bg-red-300 cursor-not-allowed text-white' : 'bg-red-600 text-white hover:bg-red-700'}`}
               >
-                交卷
+                {isSubmitting ? '正在交卷...' : '交卷'}
               </button>
             </div>
           </div>
@@ -615,12 +640,13 @@ export default function ExamPage() {
                   </button>
                 </div>
                 
-                {currentQuestionIndex === questions.length - 1 && (
+                 {currentQuestionIndex === questions.length - 1 && (
                   <button
                     onClick={handleSubmitExam}
-                    className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                     disabled={isSubmitting}
+                     className={`px-6 py-2 rounded-md transition-colors ${isSubmitting ? 'bg-red-300 cursor-not-allowed text-white' : 'bg-red-600 text-white hover:bg-red-700'}`}
                   >
-                    提交试卷
+                     {isSubmitting ? '正在交卷...' : '提交试卷'}
                   </button>
                 )}
               </div>
@@ -628,6 +654,26 @@ export default function ExamPage() {
           </div>
         </div>
       </div>
+
+      {/* 阅卷进度遮罩 */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-8 w-[90%] max-w-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-900">正在阅卷</h3>
+              <span className="text-sm text-gray-500">请稍候...</span>
+            </div>
+            <p className="text-gray-700 mb-4">{submitStatusText}</p>
+            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+              <div
+                className="h-3 bg-blue-600 rounded-full transition-all duration-300"
+                style={{ width: `${submitProgress}%` }}
+              />
+            </div>
+            <div className="mt-2 text-right text-sm text-gray-600">{submitProgress}%</div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
