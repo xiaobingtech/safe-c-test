@@ -85,33 +85,50 @@ export async function getRandomQuestions(mode: ExamMode = 'random', userId?: str
 }
 
 async function sortQuestionsByMode(questions: Question[], mode: ExamMode, userId?: string): Promise<Question[]> {
-  switch (mode) {
-    case 'random':
-      return shuffleArray(questions)
-    
-    case 'unanswered_first':
-      // 如果有用户ID，获取用户的答题历史
-      if (userId) {
-        const answeredQuestionIds = await getUserAnsweredQuestions(userId)
-        const unanswered = questions.filter(q => !answeredQuestionIds.has(q.id))
-        const answered = questions.filter(q => answeredQuestionIds.has(q.id))
-        return [...shuffleArray(unanswered), ...shuffleArray(answered)]
-      }
-      return shuffleArray(questions)
-    
-    case 'wrong_first':
-      // 如果有用户ID，获取用户的错题历史
-      if (userId) {
-        const wrongQuestionIds = await getUserWrongQuestions(userId)
-        const wrong = questions.filter(q => wrongQuestionIds.has(q.id))
-        const others = questions.filter(q => !wrongQuestionIds.has(q.id))
-        return [...shuffleArray(wrong), ...shuffleArray(others)]
-      }
-      return shuffleArray(questions)
-    
-    default:
-      return shuffleArray(questions)
+  // 严格保持题型分组顺序：judge -> single -> multiple
+  const judgeGroup = questions.filter(q => q.type === 'judge')
+  const singleGroup = questions.filter(q => q.type === 'single')
+  const multipleGroup = questions.filter(q => q.type === 'multiple')
+
+  if (mode === 'random') {
+    // 随机模式：仅在各分组内打乱，保持分组顺序
+    return [
+      ...shuffleArray(judgeGroup),
+      ...shuffleArray(singleGroup),
+      ...shuffleArray(multipleGroup)
+    ]
   }
+
+  if (mode === 'unanswered_first' && userId) {
+    const answeredQuestionIds = await getUserAnsweredQuestions(userId)
+    const sortByUnanswered = (group: Question[]) => {
+      const unanswered = group.filter(q => !answeredQuestionIds.has(q.id))
+      const answered = group.filter(q => answeredQuestionIds.has(q.id))
+      return [...shuffleArray(unanswered), ...shuffleArray(answered)]
+    }
+    return [
+      ...sortByUnanswered(judgeGroup),
+      ...sortByUnanswered(singleGroup),
+      ...sortByUnanswered(multipleGroup)
+    ]
+  }
+
+  if (mode === 'wrong_first' && userId) {
+    const wrongQuestionIds = await getUserWrongQuestions(userId)
+    const sortByWrongFirst = (group: Question[]) => {
+      const wrong = group.filter(q => wrongQuestionIds.has(q.id))
+      const others = group.filter(q => !wrongQuestionIds.has(q.id))
+      return [...shuffleArray(wrong), ...shuffleArray(others)]
+    }
+    return [
+      ...sortByWrongFirst(judgeGroup),
+      ...sortByWrongFirst(singleGroup),
+      ...sortByWrongFirst(multipleGroup)
+    ]
+  }
+
+  // 默认：保持原有（已分组）顺序
+  return [...judgeGroup, ...singleGroup, ...multipleGroup]
 }
 
 function getRandomItems<T>(array: T[], count: number): T[] {
