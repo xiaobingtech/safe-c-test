@@ -33,6 +33,7 @@ export default function ExamModePage() {
   const { data: session } = useSession()
   const router = useRouter()
   const [selectedMode, setSelectedMode] = useState('random')
+  const [selectedCategory, setSelectedCategory] = useState<'A' | 'B' | 'C'>('C')
   const [loading, setLoading] = useState(false)
 
   if (!session) {
@@ -49,7 +50,8 @@ export default function ExamModePage() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          mode: selectedMode
+          mode: selectedMode,
+          category: selectedCategory
         })
       })
 
@@ -100,6 +102,30 @@ export default function ExamModePage() {
           <div className="mt-4 text-center">
             <div className="text-lg font-semibold text-blue-900">
               总计: 100题 100分 | 考试时间: 90分钟 | 合格分数: 60分
+            </div>
+          </div>
+          <div className="mt-4 text-center text-sm text-gray-600">
+            请选择考试类别：A 类 / B 类 / C 类（默认 C 类）
+          </div>
+        </div>
+
+        {/* 类别选择 */}
+        <div className="space-y-4 mb-8">
+          <div className="border-2 rounded-lg p-6 bg-white">
+            <div className="flex items-center space-x-6">
+              {(['A','B','C'] as const).map(cat => (
+                <label key={cat} className="inline-flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="category"
+                    value={cat}
+                    checked={selectedCategory === cat}
+                    onChange={() => setSelectedCategory(cat)}
+                    className="mr-1"
+                  />
+                  <span className="font-medium">{cat} 类</span>
+                </label>
+              ))}
             </div>
           </div>
         </div>

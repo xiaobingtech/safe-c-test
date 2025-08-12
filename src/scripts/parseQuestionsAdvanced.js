@@ -5,10 +5,23 @@ const path = require('path');
 class AdvancedQuestionParser {
   
   /**
+   * 预处理：去除页码、统一换行等
+   */
+  preprocessContent(raw) {
+    if (!raw) return ''
+    return String(raw)
+      .replace(/\r\n?/g, '\n')
+      // 删除独立行形式的页码，如 "- 12 -"、"-12-"、"– 3 –"
+      .replace(/^\s*[\-–—]\s*\d+\s*[\-–—]\s*$/gm, '')
+      // 删除夹在句子中的孤立页码标记（极少数情况）
+      .replace(/\s*[\-–—]\s*\d+\s*[\-–—]\s*/g, ' ')
+  }
+  
+  /**
    * 解析单选题文件 - 改进版
    */
   parseSingleChoice(filePath) {
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = this.preprocessContent(fs.readFileSync(filePath, 'utf-8'));
     const lines = content.split('\n').map(line => line.trim()).filter(line => line);
     const questions = [];
     
@@ -92,7 +105,7 @@ class AdvancedQuestionParser {
    * 解析多选题文件 - 改进版
    */
   parseMultipleChoice(filePath) {
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = this.preprocessContent(fs.readFileSync(filePath, 'utf-8'));
     const lines = content.split('\n').map(line => line.trim()).filter(line => line);
     const questions = [];
     
@@ -187,7 +200,7 @@ class AdvancedQuestionParser {
    * 解析判断题文件 - 改进版
    */
   parseJudgeQuestions(filePath) {
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = this.preprocessContent(fs.readFileSync(filePath, 'utf-8'));
     const lines = content.split('\n').map(line => line.trim()).filter(line => line);
     const questions = [];
     
@@ -242,7 +255,7 @@ class AdvancedQuestionParser {
    * 基于正则表达式的块状解析方法
    */
   parseByBlocks(filePath, questionType) {
-    const content = fs.readFileSync(filePath, 'utf-8');
+    const content = this.preprocessContent(fs.readFileSync(filePath, 'utf-8'));
     const questions = [];
     
     if (questionType === 'single') {
@@ -309,20 +322,38 @@ class AdvancedQuestionParser {
   /**
    * 解析所有题目文件 - 使用更健壮的方法
    */
-  parseAllQuestions(resDir) {
-    const singleChoicePath = path.join(resDir, '安全C证单选题.txt');
-    const multipleChoicePath = path.join(resDir, '安全C证多选题.txt');
-    const judgePath = path.join(resDir, '安全C证判断题.txt');
+  parseAllQuestions(resDir, category = 'C') {
+    const fileMap = {
+      A: {
+        single: '安全A类单选题.txt',
+        multiple: '安全A类多选题.txt',
+        judge: '安全A类判断题.txt'
+      },
+      B: {
+        single: '安全B类单选题.txt',
+        multiple: '安全B类多选题.txt',
+        judge: '安全B类判断题.txt'
+      },
+      C: {
+        single: '安全C证单选题.txt',
+        multiple: '安全C证多选题.txt',
+        judge: '安全C证判断题.txt'
+      }
+    }
+    const mapping = fileMap[category] || fileMap.C
+    const singleChoicePath = path.join(resDir, mapping.single);
+    const multipleChoicePath = path.join(resDir, mapping.multiple);
+    const judgePath = path.join(resDir, mapping.judge);
     
-    console.log('开始解析单选题（使用正则表达式方法）...');
+    console.log(`开始解析单选题（${category} 类，使用正则表达式方法）...`);
     let singleChoice = this.parseByBlocks(singleChoicePath, 'single');
     console.log(`单选题解析完成，共 ${singleChoice.length} 道题`);
     
-    console.log('开始解析多选题（使用正则表达式方法）...');
+    console.log(`开始解析多选题（${category} 类，使用正则表达式方法）...`);
     let multipleChoice = this.parseByBlocks(multipleChoicePath, 'multiple');
     console.log(`多选题解析完成，共 ${multipleChoice.length} 道题`);
     
-    console.log('开始解析判断题（使用正则表达式方法）...');
+    console.log(`开始解析判断题（${category} 类，使用正则表达式方法）...`);
     let judge = this.parseByBlocks(judgePath, 'judge');
     console.log(`判断题解析完成，共 ${judge.length} 道题`);
     
@@ -363,7 +394,8 @@ class AdvancedQuestionParser {
 // 主函数
 function main() {
   try {
-    console.log('=== 安全C证题目解析器（改进版）===');
+    const category = (process.argv[2] || 'C').toUpperCase()
+    console.log(`=== 安全${category} 类题目解析器（改进版）===`);
     console.log('');
     
     const parser = new AdvancedQuestionParser();
@@ -372,7 +404,7 @@ function main() {
     const resDir = path.join(__dirname, '../res');
     
     // 解析所有题目
-    const result = parser.parseAllQuestions(resDir);
+    const result = parser.parseAllQuestions(resDir, category);
     
     console.log('');
     console.log('=== 解析结果 ===');
@@ -382,7 +414,7 @@ function main() {
     console.log(`总计: ${result.total} 道题目`);
     
     // 保存为JSON文件
-    const outputPath = path.join(__dirname, '../output/questions_advanced.json');
+    const outputPath = path.join(__dirname, `../output/questions_${category}.json`);
     
     // 确保输出目录存在
     const outputDir = path.dirname(outputPath);

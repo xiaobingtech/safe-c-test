@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../../../../../lib/auth'
-import { createExamSession, getRandomQuestions, getExamQuestions } from '../../../../../lib/exam'
+import { createExamSession, getRandomQuestions, getExamQuestions, ExamCategory } from '../../../../../lib/exam'
 
 export const runtime = 'nodejs'
 
@@ -19,11 +19,15 @@ export async function POST(request: NextRequest) {
     let body
     let existingSessionId
     let examMode = 'random' // 默认随机模式
+    let category: ExamCategory = 'C'
     
     try {
       body = await request.json()
       existingSessionId = body.sessionId
       examMode = body.mode || 'random'
+      if (body.category && ['A','B','C'].includes(body.category)) {
+        category = body.category
+      }
     } catch {
       // 如果没有请求体，就创建新的考试会话
       existingSessionId = null
@@ -91,12 +95,12 @@ export async function POST(request: NextRequest) {
         } catch {}
       } else {
         // 会话不存在或没有题目，创建新的
-        questions = await getRandomQuestions(examMode as any, session.user.id)
+        questions = await getRandomQuestions(examMode as any, session.user.id, category)
         examSessionId = await createExamSession(session.user.id, questions)
       }
     } else {
       // 创建新的考试会话和题目
-      questions = await getRandomQuestions(examMode as any, session.user.id)
+      questions = await getRandomQuestions(examMode as any, session.user.id, category)
       examSessionId = await createExamSession(session.user.id, questions)
     }
     

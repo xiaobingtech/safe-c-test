@@ -1,4 +1,7 @@
-import questionsData from '../src/output/questions.json'
+// 默认载入C类题库，其他类别按需从磁盘读取
+import cQuestionsData from '../src/output/questions.json'
+import * as fs from 'fs'
+import * as path from 'path'
 
 export interface Question {
   id: number
@@ -23,6 +26,7 @@ export interface ExamConfig {
 }
 
 export type ExamMode = 'random' | 'unanswered_first' | 'wrong_first'
+export type ExamCategory = 'A' | 'B' | 'C'
 
 export interface ExamModeConfig {
   mode: ExamMode
@@ -56,8 +60,13 @@ export const EXAM_MODES: ExamModeConfig[] = [
   }
 ]
 
-export async function getRandomQuestions(mode: ExamMode = 'random', userId?: string): Promise<Question[]> {
-  const { singleChoice, multipleChoice, judge } = questionsData.questions
+export async function getRandomQuestions(
+  mode: ExamMode = 'random',
+  userId?: string,
+  category: ExamCategory = 'C'
+): Promise<Question[]> {
+  const data = await loadQuestionsByCategory(category)
+  const { singleChoice, multipleChoice, judge } = data.questions
   
   // 随机选择题目并进行类型转换
   const selectedSingle = getRandomItems(singleChoice, EXAM_CONFIG.singleChoiceCount).map(q => ({
@@ -82,6 +91,59 @@ export async function getRandomQuestions(mode: ExamMode = 'random', userId?: str
   
   // 根据模式排序题目
   return await sortQuestionsByMode(allQuestions, mode, userId)
+}
+
+interface QuestionsFileMetadata {
+  totalQuestions: number
+  singleChoiceCount: number
+  multipleChoiceCount: number
+  judgeCount: number
+  parseDate: string
+  [key: string]: any
+}
+
+interface QuestionsFile {
+  metadata: QuestionsFileMetadata
+  questions: {
+    singleChoice: Question[]
+    multipleChoice: Question[]
+    judge: Question[]
+  }
+}
+
+async function loadQuestionsByCategory(category: ExamCategory): Promise<QuestionsFile> {
+  try {
+    switch (category) {
+      case 'A':
+        return readQuestionsFromDisk('questions_A.json')
+      case 'B':
+        return readQuestionsFromDisk('questions_B.json')
+      case 'C':
+        {
+          const disk = readQuestionsFromDisk('questions_C.json')
+          // 如果磁盘没有，回退到打包内置的 questions.json
+          return (disk?.questions ? disk : (cQuestionsData as QuestionsFile))
+        }
+      default:
+        return cQuestionsData as QuestionsFile
+    }
+  } catch (error) {
+    console.error(`载入题库失败: ${category}`, error)
+    // 回退到C类
+    return cQuestionsData as QuestionsFile
+  }
+}
+
+function readQuestionsFromDisk(fileName: string): QuestionsFile {
+  const filePath = path.join(process.cwd(), 'src', 'output', fileName)
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8')
+    return JSON.parse(content) as QuestionsFile
+  } catch (error) {
+    console.error(`读取题库文件失败: ${filePath}`, error)
+    // 兜底到C类
+    return cQuestionsData as QuestionsFile
+  }
 }
 
 async function sortQuestionsByMode(questions: Question[], mode: ExamMode, userId?: string): Promise<Question[]> {
