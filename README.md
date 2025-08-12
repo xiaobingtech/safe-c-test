@@ -1,16 +1,17 @@
-# 🛡️ 山东建筑类安全C证模拟考试系统
+# 🛡️ 建筑安全员 A/B/C 类模拟考试系统
 
-一个专业的建筑施工安全员C证考试模拟系统，基于真实考试题库，提供完整的在线考试体验。
+一个专业的建筑施工安全员 A/B/C 类考试模拟系统，基于真实考试题库，提供完整的在线考试体验。
 
 ## ✨ 项目特色
 
-- 📚 **完整题库**: 包含 2286 道真实考试题目
+- 📚 **多类别题库**: 覆盖 A 类 / B 类 / C 证 题库
 - 🎯 **三种题型**: 判断题、单选题、多选题
 - ⏰ **真实考试**: 90分钟限时，100道题目
 - 🎮 **多种模式**: 随机模式、未答题优先、错题优先
 - 🔒 **灵活规则**: 选择即算作答，支持交卷前修改
 - 📊 **详细统计**: 答题进度、分数统计、错题分析
 - 💾 **数据持久**: 考试记录、用户进度自动保存
+ - 🧹 **题库清洗**: 解析脚本内置“去除页码”预处理，减少人工干预
 
 ## 🎮 考试规则
 
@@ -27,7 +28,7 @@
 
 ### 考试流程
 1. 用户注册/登录
-2. 选择答题模式
+2. 选择考试类别（A/B/C）与答题模式
 3. 开始新考试（按模式生成题目顺序）
 4. 按题型分组答题：判断题 → 单选题 → 多选题
 5. 选择选项即标记为已答题
@@ -115,8 +116,8 @@ safe-c-test/
 │   │   │   ├── [sessionId]/ # 考试答题页面
 │   │   │   └── results/    # 考试结果页面
 │   │   └── page.tsx        # 首页
-│   ├── res/                # 原始题库文件
-│   └── output/             # 解析后的 JSON 题库
+│   ├── res/                # 原始题库文件（A/B/C 类）
+│   └── output/             # 解析后的 JSON 题库（questions_A/B/C.json）
 ├── lib/                    # 核心库文件
 │   ├── auth.ts            # 认证配置
 │   ├── db.ts              # 数据库连接
@@ -154,10 +155,29 @@ safe-c-test/
 
 ## 🔧 开发指南
 
-### 添加新题目
-1. 更新 `src/res/` 下的题库文件
-2. 运行解析脚本: `node src/scripts/parseQuestionsAdvanced.js`
-3. 重新部署应用
+### 添加/更新题库与解析
+将题库文本放入 `src/res/`，文件命名示例：
+
+- A 类：`安全A类单选题.txt`、`安全A类多选题.txt`、`安全A类判断题.txt`
+- B 类：`安全B类单选题.txt`、`安全B类多选题.txt`、`安全B类判断题.txt`
+- C 证：`安全C证单选题.txt`、`安全C证多选题.txt`、`安全C证判断题.txt`
+
+解析脚本会自动执行“去除页码”等预处理，并输出到 `src/output/`：
+
+```bash
+# 解析并生成 A 类题库 JSON（输出：src/output/questions_A.json）
+node src/scripts/parseQuestionsAdvanced.js A
+
+# 解析并生成 B 类题库 JSON（输出：src/output/questions_B.json）
+node src/scripts/parseQuestionsAdvanced.js B
+
+# 解析并生成 C 类题库 JSON（输出：src/output/questions_C.json）
+node src/scripts/parseQuestionsAdvanced.js C
+```
+
+前端在 `src/app/exam/mode/page.tsx` 提供考试类别选择（A/B/C），开始考试会将 `category` 传入接口；后端 `src/app/api/exam/start/route.ts` 接收 `category` 并按类抽题；核心逻辑见 `lib/exam.ts`。
+
+注意：C 类题库在构建时还内置了一个默认 `questions.json`，当磁盘未生成 `questions_C.json` 时会自动回退到该内置版本。
 
 ### 修改考试规则
 编辑 `lib/exam.ts` 中的 `EXAM_CONFIG` 配置：
@@ -243,7 +263,14 @@ MIT License
 
 ## 🆕 最新更新
 
-### v2.0.0 (最新版)
+### v2.1.0 (最新)
+- ✅ 新增 **A/B 类题库支持**，与 C 类并行使用
+- ✅ 解析脚本 `src/scripts/parseQuestionsAdvanced.js` 内置 **去页码** 预处理
+- ✅ 按类别生成 `src/output/questions_A/B/C.json`
+- ✅ `/exam/mode` 页面支持 **选择考试类别（A/B/C）**
+- ✅ 开始考试接口接收 `category` 并按类抽题
+
+### v2.0.0
 - ✅ **全新答题规则**: 判断题40题 + 单选题40题 + 多选题20题，每题1分
 - ✅ **多种答题模式**: 随机模式、未答题优先、错题优先
 - ✅ **智能题目排序**: 根据用户历史记录优化学习路径
@@ -281,4 +308,4 @@ MIT License
 
 ---
 
-**⚡ 立即开始您的安全C证考试准备之旅！选择适合您的答题模式，让学习更高效！**
+**⚡ 立即开始您的安全 A/B/C 类考试准备之旅！选择适合您的考试类别与答题模式，让学习更高效！**
